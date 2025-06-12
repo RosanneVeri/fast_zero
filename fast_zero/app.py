@@ -5,7 +5,13 @@ from fastapi.responses import HTMLResponse
 
 from fast_zero.schemas import Message, UserDB, UserList, UserPublic, UserSchema
 
-database = []
+database = [
+    # UserPublic(id=1, username='Maria', email='maria@gmail.com'),
+    # UserPublic(id=2, username='Alice', email='maria@gmail.com'),
+    # UserPublic(id=3, username='Robert', email='maria@gmail.com'),
+    # UserPublic(id=4, username='João', email='maria@gmail.com'),
+    # UserPublic(id=5, username='Felipe', email='maria@gmail.com'),
+]
 app = FastAPI(title='Minha API TOP')
 
 
@@ -37,7 +43,7 @@ def create_user(user: UserSchema):
 
 
 @app.get('/users/', status_code=HTTPStatus.OK, response_model=UserList)
-def read_user():
+def get_users():
     return {'users': database}
 
 
@@ -63,3 +69,16 @@ def delete_user(user_id: int):
             status_code=HTTPStatus.NOT_FOUND, detail='Usuário não encontrado'
         )
     return database.pop(user_id - 1)
+
+
+@app.get('/users/{id}', response_model=UserPublic)
+def get_user(
+    id: int,
+):
+    for user in database:
+        print(user.id)
+        if int(user.id) == id:
+            return user
+    raise HTTPException(
+        status_code=HTTPStatus.NOT_FOUND, detail='Usuário não encontrado'
+    )

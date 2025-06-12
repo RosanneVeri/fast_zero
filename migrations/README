@@ -1,0 +1,4 @@
+Generic single-database configuration.
+
+#instalando alembic e criando a pasta migrations
+poetry add alembic/poetry run alembic init migrations
