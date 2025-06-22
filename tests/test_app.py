@@ -1,5 +1,8 @@
 from http import HTTPStatus
 
+from sqlalchemy import select
+
+from fast_zero.models import User
 from fast_zero.schemas import UserPublic
 
 
@@ -83,12 +86,23 @@ def test_delete_user(client, user):
     assert response.json() == {'message': 'User deleted'}
 
 
-def test_delete_user_not_found(client):
+def test_delete_user_not_found(client, session):
+    user_to_delete = session.scalar(select(User).where(User.id == 1))
+    if user_to_delete:
+        session.delete(user_to_delete)
+        session.commit()
+
     response = client.delete('/users/1')
     assert response.status_code == HTTPStatus.NOT_FOUND
 
 
-def test_update_user_not_found(client):
+def test_update_user_not_found(client, session):
+    # Limpa o usuário com id=1 antes do teste, se existir
+    user_to_delete = session.scalar(select(User).where(User.id == 1))
+    if user_to_delete:
+        session.delete(user_to_delete)
+        session.commit()
+
     response = client.put(
         '/users/1',
         json={
@@ -98,6 +112,7 @@ def test_update_user_not_found(client):
         },
     )
     assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {'detail': 'Usuário não encontrado'}
 
 
 def test_update_integrity_error(client, user):
@@ -122,7 +137,12 @@ def test_update_integrity_error(client, user):
     assert response.status_code == HTTPStatus.CONFLICT
 
 
-def test_get_user_not_found(client):
+def test_get_user_not_found(client, session):
+    user_to_delete = session.scalar(select(User).where(User.id == 1))
+    if user_to_delete:
+        session.delete(user_to_delete)
+        session.commit()
+
     response = client.get('/users/1')
     assert response.status_code == HTTPStatus.NOT_FOUND
 
@@ -135,4 +155,46 @@ def test_get_user(client, user):
         'id': user.id,
         'username': user.username,
         'email': user.email,
+    }
+
+
+def test_create_user_duplicate_username(client, user):
+    response = client.post(
+        '/users/',
+        json={
+            'username': user.username,
+            'email': 'test@test.com',
+            'password': 'secret',
+        },
+    )
+    print(response.json())
+    assert response.status_code == HTTPStatus.CONFLICT
+    assert response.json() == {'detail': 'Username already exists'}
+
+
+def test_create_user_duplicate_email(client, user):
+    response = client.post(
+        '/users/',
+        json={
+            'username': 'newuser',
+            'email': user.email,
+            'password': '123',
+        },
+    )
+    assert response.status_code == HTTPStatus.CONFLICT
+    assert response.json() == {'detail': 'Email already exists'}
+
+
+def test_get_user_persistence(client, session):
+    new_user = User(
+        username='persist', email='persist@test.com', password='secret'
+    )
+    session.add(new_user)
+    session.commit()
+    response = client.get(f'/users/{new_user.id}')
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {
+        'id': new_user.id,
+        'username': 'persist',
+        'email': 'persist@test.com',
     }
