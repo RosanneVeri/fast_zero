@@ -20,3 +20,8 @@ class UserPublic(BaseModel):
 
 class UserList(BaseModel):
     users: list[UserPublic]
+
+
+class JWToken(BaseModel):
+    access_token: str
+    token_type: str

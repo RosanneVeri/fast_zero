@@ -7,9 +7,7 @@ from fast_zero.models import User
 
 def test_create_user(session, datetime_fake_vindo_banco):
     with datetime_fake_vindo_banco(model=User) as time:
-        new_user = User(
-            username='test', email='test@test.com', password='secret'
-        )
+        new_user = User(username='test', email='test@test.com', password='secret')
         session.add(new_user)
         session.commit()
         user = session.scalar(select(User).where(User.username == 'test'))
